@@ -1,13 +1,15 @@
 import * as React from "react";
-import { Box, Stack } from "@chakra-ui/react";
-import { useMeQuery } from "../generated/graphql";
+import { Box, Stack, Link } from "@chakra-ui/react";
+import { useMeQuery, useLogoutMutation } from "../generated/graphql";
 import IconLink from "./IconLink";
 import { motion } from "framer-motion";
+import { isServer } from "../utils/isServer";
 
 interface INavbarProps {}
 
 const Navbar: React.FC<INavbarProps> = ({}) => {
-  const [{ fetching, data }] = useMeQuery();
+  const [{}, logout] = useLogoutMutation();
+  const [{ fetching, data }] = useMeQuery({ pause: isServer() });
   let body = null;
   if (fetching) {
     body = <Box w="100%"></Box>;
@@ -31,7 +33,18 @@ const Navbar: React.FC<INavbarProps> = ({}) => {
       </Stack>
     );
   } else {
-    body = <Box>{data.me.username}</Box>;
+    body = (
+      <Stack direction="row" justify="flex-end">
+        <Link
+          onClick={async () => {
+            await logout();
+          }}
+        >
+          Logout
+        </Link>
+        <Box>{data.me.username}</Box>;
+      </Stack>
+    );
   }
   return (
     <Box py="10px" px="20px">

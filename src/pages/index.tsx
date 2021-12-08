@@ -3,6 +3,8 @@ import { Heading, Stack, Link, Text } from "@chakra-ui/react";
 import { motion, useMotionValue, useTransform, Variants } from "framer-motion";
 import Navbar from "../components/Navbar";
 import IconLink from "../components/IconLink";
+import { withUrqlClient } from "next-urql";
+import { createUrqlClient } from "../utils/createUrqlClient";
 
 const svgVariants: Variants = {
   hover: {
@@ -82,4 +84,4 @@ const Index: React.FC = () => {
   );
 };
 
-export default Index;
+export default withUrqlClient(createUrqlClient)(Index);
