@@ -1,23 +1,17 @@
 import * as React from "react";
-import { Box } from "@chakra-ui/react";
+import { Box, Stack, BoxProps } from "@chakra-ui/react";
 
 interface IWrapperProps {
-  variant?: "small" | "regular";
+  color?: BoxProps["backgroundColor"];
 }
 
-const Wrapper: React.FC<IWrapperProps> = ({
-  children,
-  variant = "regular",
-}) => {
+const Wrapper: React.FC<IWrapperProps> = ({ children, color = "white" }) => {
   return (
-    <Box
-      mt="20px"
-      mx="auto"
-      maxW={variant === "regular" ? "800px" : "400px "}
-      w="100%"
-    >
-      {children}
-    </Box>
+    <Stack direction="row" justify="center" backgroundColor={color}>
+      <Box w="870px" px="16px">
+        {children}
+      </Box>
+    </Stack>
   );
 };
 

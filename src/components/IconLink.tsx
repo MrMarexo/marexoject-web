@@ -41,6 +41,7 @@ const IconLink: React.FC<IIconLinkProps> = ({
           textDecoration="none"
           _hover={{ textDecoration: "underline" }}
           transition="0.2"
+          as="a"
         >
           {text}
         </Text>

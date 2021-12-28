@@ -1,9 +1,10 @@
 import * as React from "react";
-import { Box, Stack, Link } from "@chakra-ui/react";
+import { Box, Stack, Link, Text } from "@chakra-ui/react";
 import { useMeQuery, useLogoutMutation } from "../generated/graphql";
 import IconLink from "./IconLink";
 import { motion } from "framer-motion";
 import { isServer } from "../utils/isServer";
+import NextLink from "next/link";
 
 interface INavbarProps {}
 
@@ -30,11 +31,37 @@ const Navbar: React.FC<INavbarProps> = ({}) => {
           }}
           link="/register"
         />
+        <IconLink
+          svgPaths={[
+            <motion.path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />,
+          ]}
+          text="Login"
+          hoverStyle={{
+            hover: {
+              scale: 1.3,
+              transition: { duration: 0.3, ease: "easeOut" },
+            },
+          }}
+          link="/login"
+        />
       </Stack>
     );
   } else {
     body = (
       <Stack direction="row" justify="flex-end">
+        <IconLink
+          svgPaths={[
+            <motion.path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />,
+          ]}
+          text="New post"
+          hoverStyle={{
+            hover: {
+              scale: 1.3,
+              transition: { duration: 0.3, ease: "easeOut" },
+            },
+          }}
+          link="/create-post"
+        />
         <Link
           onClick={async () => {
             await logout();
@@ -47,9 +74,20 @@ const Navbar: React.FC<INavbarProps> = ({}) => {
     );
   }
   return (
-    <Box py="10px" px="20px">
+    <Stack
+      py="10px"
+      px="20px"
+      direction="row"
+      align="center"
+      justify="space-between"
+    >
+      <NextLink href="/">
+        <Text fontWeight="bold" cursor="pointer">
+          marexoject
+        </Text>
+      </NextLink>
       {body}
-    </Box>
+    </Stack>
   );
 };
 
