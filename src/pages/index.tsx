@@ -1,92 +1,124 @@
-import * as React from "react";
 import {
   Heading,
   Stack,
-  Link,
   Text,
-  Box,
+  Select,
   Button,
-  IconButton,
+  Box,
+  Input,
 } from "@chakra-ui/react";
-import { motion, useMotionValue, useTransform, Variants } from "framer-motion";
-import Navbar from "../components/Navbar";
-import IconLink from "../components/IconLink";
 import { withUrqlClient } from "next-urql";
+import * as React from "react";
+import Layout from "../components/Layout";
+import Suggest from "../components/Suggest";
+import {
+  TasksQuery,
+  useTasksQuery,
+  useSuggestTasksQuery,
+} from "../generated/graphql";
 import { createUrqlClient } from "../utils/createUrqlClient";
-import { usePostsQuery, useVoteMutation } from "../generated/graphql";
-import { ChevronUpIcon, ChevronDownIcon } from "@chakra-ui/icons";
+
+const createChoicePool = (choices: TasksQuery["tasks"]) => {
+  const pool = choices.map((c) => ({ ...c, used: -1 }));
+  pool.unshift({ id: 0, name: "No task", used: -1 });
+  return pool;
+};
+
+interface IPoolChoice {
+  id: number;
+  name: string;
+  used: number;
+}
 
 const Index: React.FC = () => {
-  const [cursor, setCursor] = React.useState<string | null>(null);
-  const [{}, vote] = useVoteMutation();
-  const [{ data, fetching }] = usePostsQuery({
-    variables: {
-      limit: 10,
-      cursor: cursor,
-    },
-  });
-  // React.useEffect(() => {
-  //   console.log("FETCHING", fetching);
-  //   console.log("DATA", data);
-  // }, [fetching]);
+  const [{ data, fetching }] = useTasksQuery();
+
+  const [numberOfSelects, setNumberOfSelects] = React.useState(5);
+  const [selectState, setSelectState] = React.useState<
+    Record<number, string | undefined>
+  >({});
+
+  const [choices, setChoices] = React.useState([{} as IPoolChoice]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (data?.tasks) {
+      setChoices(createChoicePool(data.tasks));
+      setLoading(false);
+    }
+  }, [fetching]);
+
+  React.useEffect(() => {
+    const obj: typeof selectState = {};
+    [...Array(numberOfSelects)].forEach((n, i) => {
+      if (!obj[i]) obj[i] = undefined;
+    });
+
+    setSelectState(obj);
+  }, [numberOfSelects]);
+
   return (
-    <>
-      <Navbar />
-      <Stack h="1000px" justify="center" align="center">
-        <Heading>marexoject</Heading>
-        {fetching ? (
-          <Text>Loading...</Text>
-        ) : data?.posts && data.posts.posts.length > 0 ? (
-          <Stack pt="40px" pb="20px" spacing="20px">
-            {data.posts.posts.map((p, i) => (
-              <Stack
-                key={i}
-                px="10px"
-                py="12px"
-                w="400px"
-                borderWidth="1px"
-                direction="row"
-                spacing="10px"
-              >
-                <Stack align="center">
-                  <IconButton
-                    icon={<ChevronUpIcon boxSize="20px" />}
-                    aria-label="upvote"
-                    onClick={() => vote({ value: 1, postId: p.id })}
-                  />
-                  <Text>{p.points}</Text>
-                  <IconButton
-                    icon={<ChevronDownIcon boxSize="20px" />}
-                    aria-label="downvote"
-                    onClick={() => vote({ value: -1, postId: p.id })}
-                  />
-                </Stack>
-                <Box w="100%">
-                  <Stack direction="row" justify="space-between">
-                    <Heading fontSize="23px">{p.title}</Heading>
-                    <Text>{p.creator.username}</Text>
-                  </Stack>
-                  <Text>{p.textSnippet + "..."}</Text>
-                </Box>
-              </Stack>
-            ))}
-            {data.posts.hasMore && (
-              <Button
-                onClick={() =>
-                  setCursor(
-                    data.posts.posts[data.posts.posts.length - 1].createdAt
-                  )
-                }
-              >
-                more posts
-              </Button>
-            )}
-          </Stack>
+    <Layout>
+      <Stack justify="center" align="center" mt="100px">
+        <Heading>Welcome</Heading>
+        <Text textAlign="center">
+          Choose at least five activities you'd like to do daily.
+        </Text>
+        {loading ? (
+          <Text>Fetching the data for you</Text>
         ) : (
-          <Text>no posts</Text>
+          [...Array(numberOfSelects)].map((_, i) => (
+            <Select
+              key={i}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectState((s) => ({ ...s, [i]: value }));
+                setChoices((choices) => {
+                  const prevIndex = choices.findIndex((c) => c.used === i);
+                  if (prevIndex !== -1 && choices[prevIndex].id !== 0)
+                    choices[prevIndex].used = -1;
+                  const newIndex = choices.findIndex((c) => c.name === value);
+                  if (choices[newIndex].id !== 0) choices[newIndex].used = i;
+                  return choices;
+                });
+              }}
+            >
+              {choices.map((c, ind) => {
+                if (c.used === i || c.used === -1) {
+                  return (
+                    <option key={ind} value={ind === 0 ? undefined : c.name}>
+                      {c.name}
+                    </option>
+                  );
+                }
+              })}
+            </Select>
+          ))
         )}
+        <Stack direction="row">
+          <Button
+            disabled={numberOfSelects === 10}
+            onClick={() => setNumberOfSelects((s) => s + 1)}
+            w="200px"
+          >
+            Add
+          </Button>
+          <Button
+            disabled={numberOfSelects === 5}
+            onClick={() => setNumberOfSelects((s) => s - 1)}
+          >
+            -
+          </Button>
+        </Stack>
+        <Suggest />
+
+        <Box pt="50px">
+          <Button w="300px" h="50px" fontSize="25px">
+            Submit
+          </Button>
+        </Box>
       </Stack>
-    </>
+    </Layout>
   );
 };
 

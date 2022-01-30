@@ -1,0 +1,6 @@
+query SuggestTasks($word: String) {
+  suggestTasks(word: $word) {
+    id
+    name
+  }
+}

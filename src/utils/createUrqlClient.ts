@@ -1,10 +1,12 @@
 import { dedupExchange, fetchExchange } from "@urql/core";
 import { QueryInput, Cache, cacheExchange, Resolver } from "@urql/exchange-graphcache";
-import { LogoutMutation, MeQuery, MeDocument, LoginMutation, RegisterMutation } from "../generated/graphql";
+import { LogoutMutation, MeQuery, MeDocument, LoginMutation, RegisterMutation, VoteMutationVariables, RemovePostMutationVariables } from "../generated/graphql";
 import {pipe, tap} from "wonka";
 import { Exchange } from "@urql/core";
 import router from "next/router";
 import { stringifyVariables } from "urql";
+import { gql } from '@urql/core';
+import { isServer } from "./isServer";
 
 const errorExchange: Exchange = ({forward}) => (ops$) => {
   return pipe(
@@ -17,6 +19,14 @@ const errorExchange: Exchange = ({forward}) => (ops$) => {
     }
   )
   )
+}
+
+const invalidateAll = (cache: Cache) => {
+  const allFields = cache.inspectFields("Query");
+  const fieldInfos = allFields.filter(info => info.fieldName === "posts");
+  fieldInfos.forEach(fi => {
+    cache.invalidate("Query", "posts", fi.arguments);
+  });
 }
 
 
@@ -60,58 +70,6 @@ const cursorPagination = (
       posts: results,
       hasMore: hasMore,
     } 
-
-    // const visited = new Set();
-    // let result: NullArray<string> = [];
-    // let prevOffset: number | null = null;
-
-    // for (let i = 0; i < size; i++) {
-    //   const { fieldKey, arguments: args } = fieldInfos[i];
-    //   if (args === null || !compareArgs(fieldArgs, args)) {
-    //     continue;
-    //   }
-
-    //   const links = cache.resolve(entityKey, fieldKey) as string[];
-    //   const currentOffset = args[cursorArgument];
-
-    //   if (
-    //     links === null ||
-    //     links.length === 0 ||
-    //     typeof currentOffset !== 'number'
-    //   ) {
-    //     continue;
-    //   }
-
-    //   const tempResult: NullArray<string> = [];
-
-    //   for (let j = 0; j < links.length; j++) {
-    //     const link = links[j];
-    //     if (visited.has(link)) continue;
-    //     tempResult.push(link);
-    //     visited.add(link);
-    //   }
-
-    //   if (
-    //     (!prevOffset || currentOffset > prevOffset) ===
-    //     (mergeMode === 'after')
-    //   ) {
-    //     result = [...result, ...tempResult];
-    //   } else {
-    //     result = [...tempResult, ...result];
-    //   }
-
-    //   prevOffset = currentOffset;
-    // }
-
-    // const hasCurrentPage = cache.resolve(entityKey, fieldName, fieldArgs);
-    // if (hasCurrentPage) {
-    //   return result;
-    // } else if (!(info as any).store.schema) {
-    //   return undefined;
-    // } else {
-    //   info.partial = true;
-    //   return result;
-    // }
   };
 };
 
@@ -124,9 +82,17 @@ const betterUpdateQuery = <Result, Query>(
   return cache.updateQuery(qi, (data) => fn(result, data as any) as any);
 };
 
-export const createUrqlClient = (ssrExchange: any) => ({
+export const createUrqlClient = (ssrExchange: any, ctx: any) => {
+  let cookie = "";
+  if (isServer()) {
+    console.log("IS SERVER");
+    cookie = ctx?.req?.headers?.cookie;
+  }
+  return ({ 
   url: "http://localhost:4000/graphql",
-    fetchOptions: { credentials: "include" as const },
+    fetchOptions: { credentials: "include" as const, headers: cookie ? {
+      cookie
+    } : undefined },
     exchanges: [
       dedupExchange,
       cacheExchange({
@@ -140,12 +106,36 @@ export const createUrqlClient = (ssrExchange: any) => ({
         },
         updates: {
           Mutation: {
+            removePost: (_result, args, cache, info) => {
+              cache.invalidate({__typename: "Post", id: (args as RemovePostMutationVariables).removePostId});
+            },
+            vote: (_result, args, cache, info) => {
+              const {postId, value} = args as VoteMutationVariables;
+              const data = cache.readFragment(
+                gql`
+                  fragment _ on Post {
+                    id
+                    points
+                    voteStatus
+                  }
+                `, {id: postId}
+              )
+              console.log("DATA", data);
+              if (data) {
+                if (data.voteStatus === value) return;
+                const newPoints = data.points + (data.voteStatus ? 2 : 1) * value;
+                cache.writeFragment(
+                  gql`
+                    fragment _ on Post {
+                      points
+                      voteStatus
+                    }
+                  `, {id: postId, points: newPoints, voteStatus: value}
+                )
+              }
+            },
             createPost: (_result, args, cache, info) => {
-              const allFields = cache.inspectFields("Query");
-              const fieldInfos = allFields.filter(info => info.fieldName === "posts");
-              fieldInfos.forEach(fi => {
-                cache.invalidate("Query", "posts", fi.arguments)
-              })
+              invalidateAll(cache);
             },
             logout: (_result, args, cache, info) => {
               betterUpdateQuery<LogoutMutation, MeQuery>(
@@ -170,6 +160,7 @@ export const createUrqlClient = (ssrExchange: any) => ({
                   }
                 }
               );
+              invalidateAll(cache);
             },
             register: (_result, args, cache, info) => {
               betterUpdateQuery<RegisterMutation, MeQuery>(
@@ -195,4 +186,7 @@ export const createUrqlClient = (ssrExchange: any) => ({
       ssrExchange
     ],
 
-})
+});
+}
+
+

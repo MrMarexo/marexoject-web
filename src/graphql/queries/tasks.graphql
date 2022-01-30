@@ -1,0 +1,6 @@
+query Tasks {
+  tasks {
+    id
+    name
+  }
+}

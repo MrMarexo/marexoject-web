@@ -5,10 +5,12 @@ import IconLink from "./IconLink";
 import { motion } from "framer-motion";
 import { isServer } from "../utils/isServer";
 import NextLink from "next/link";
+import { useRouter } from "next/router";
 
 interface INavbarProps {}
 
 const Navbar: React.FC<INavbarProps> = ({}) => {
+  const { reload } = useRouter();
   const [{}, logout] = useLogoutMutation();
   const [{ fetching, data }] = useMeQuery({ pause: isServer() });
   let body = null;
@@ -48,7 +50,20 @@ const Navbar: React.FC<INavbarProps> = ({}) => {
     );
   } else {
     body = (
-      <Stack direction="row" justify="flex-end">
+      <Stack direction="row" justify="flex-end" spacing="20px">
+        <IconLink
+          svgPaths={[
+            <motion.path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />,
+          ]}
+          text="Posts"
+          hoverStyle={{
+            hover: {
+              scale: 1.3,
+              transition: { duration: 0.3, ease: "easeOut" },
+            },
+          }}
+          link="/posts"
+        />
         <IconLink
           svgPaths={[
             <motion.path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />,
@@ -65,6 +80,7 @@ const Navbar: React.FC<INavbarProps> = ({}) => {
         <Link
           onClick={async () => {
             await logout();
+            reload();
           }}
         >
           Logout
@@ -82,7 +98,13 @@ const Navbar: React.FC<INavbarProps> = ({}) => {
       justify="space-between"
     >
       <NextLink href="/">
-        <Text fontWeight="bold" cursor="pointer">
+        <Text
+          fontWeight="bold"
+          cursor="pointer"
+          color="black"
+          _hover={{ color: "red" }}
+          transition="0.3s"
+        >
           marexoject
         </Text>
       </NextLink>

@@ -63,12 +63,13 @@ export type MutationRegisterArgs = {
 
 
 export type MutationRemovePostArgs = {
-  id: Scalars['Float'];
+  id: Scalars['Int'];
 };
 
 
 export type MutationUpdatePostArgs = {
-  id: Scalars['Float'];
+  id: Scalars['Int'];
+  text: Scalars['String'];
   title: Scalars['String'];
 };
 
@@ -95,6 +96,7 @@ export type Post = {
   textSnippet: Scalars['String'];
   title: Scalars['String'];
   updatedAt: Scalars['String'];
+  voteStatus?: Maybe<Scalars['Int']>;
 };
 
 export type Query = {
@@ -103,11 +105,13 @@ export type Query = {
   me?: Maybe<User>;
   post?: Maybe<Post>;
   posts: PaginatedPosts;
+  suggestTasks: Array<Task>;
+  tasks: Array<Task>;
 };
 
 
 export type QueryPostArgs = {
-  id: Scalars['Float'];
+  id: Scalars['Int'];
 };
 
 
@@ -116,10 +120,21 @@ export type QueryPostsArgs = {
   limit: Scalars['Int'];
 };
 
+
+export type QuerySuggestTasksArgs = {
+  word?: InputMaybe<Scalars['String']>;
+};
+
 export type RegisterInput = {
   email: Scalars['String'];
   password: Scalars['String'];
   username: Scalars['String'];
+};
+
+export type Task = {
+  __typename?: 'Task';
+  id: Scalars['Float'];
+  name: Scalars['String'];
 };
 
 export type User = {
@@ -192,6 +207,22 @@ export type RegisterMutationVariables = Exact<{
 
 export type RegisterMutation = { __typename?: 'Mutation', register: { __typename?: 'UserResponse', errors?: Array<{ __typename?: 'FieldError', field: string, message: string }> | null | undefined, user?: { __typename?: 'User', id: number, username: string, email: string } | null | undefined } };
 
+export type RemovePostMutationVariables = Exact<{
+  removePostId: Scalars['Int'];
+}>;
+
+
+export type RemovePostMutation = { __typename?: 'Mutation', removePost?: boolean | null | undefined };
+
+export type UpdatePostMutationVariables = Exact<{
+  text: Scalars['String'];
+  title: Scalars['String'];
+  updatePostId: Scalars['Int'];
+}>;
+
+
+export type UpdatePostMutation = { __typename?: 'Mutation', updatePost?: { __typename?: 'Post', id: number, title: string, text: string, textSnippet: string } | null | undefined };
+
 export type VoteMutationVariables = Exact<{
   value: Scalars['Int'];
   postId: Scalars['Int'];
@@ -205,13 +236,32 @@ export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'User', id: number, username: string, email: string } | null | undefined };
 
+export type PostQueryVariables = Exact<{
+  id: Scalars['Int'];
+}>;
+
+
+export type PostQuery = { __typename?: 'Query', post?: { __typename?: 'Post', id: number, createdAt: string, updatedAt: string, title: string, text: string, points: number, creator: { __typename?: 'User', id: number, username: string } } | null | undefined };
+
 export type PostsQueryVariables = Exact<{
   limit: Scalars['Int'];
   cursor?: InputMaybe<Scalars['String']>;
 }>;
 
 
-export type PostsQuery = { __typename?: 'Query', posts: { __typename?: 'PaginatedPosts', hasMore: boolean, posts: Array<{ __typename?: 'Post', id: number, createdAt: string, updatedAt: string, title: string, textSnippet: string, points: number, creator: { __typename?: 'User', id: number, username: string } }> } };
+export type PostsQuery = { __typename?: 'Query', posts: { __typename?: 'PaginatedPosts', hasMore: boolean, posts: Array<{ __typename?: 'Post', id: number, createdAt: string, updatedAt: string, title: string, textSnippet: string, voteStatus?: number | null | undefined, points: number, creator: { __typename?: 'User', id: number, username: string } }> } };
+
+export type SuggestTasksQueryVariables = Exact<{
+  word?: InputMaybe<Scalars['String']>;
+}>;
+
+
+export type SuggestTasksQuery = { __typename?: 'Query', suggestTasks: Array<{ __typename?: 'Task', id: number, name: string }> };
+
+export type TasksQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type TasksQuery = { __typename?: 'Query', tasks: Array<{ __typename?: 'Task', id: number, name: string }> };
 
 export const RegularErrorFragmentDoc = gql`
     fragment RegularError on FieldError {
@@ -305,6 +355,29 @@ export const RegisterDocument = gql`
 export function useRegisterMutation() {
   return Urql.useMutation<RegisterMutation, RegisterMutationVariables>(RegisterDocument);
 };
+export const RemovePostDocument = gql`
+    mutation RemovePost($removePostId: Int!) {
+  removePost(id: $removePostId)
+}
+    `;
+
+export function useRemovePostMutation() {
+  return Urql.useMutation<RemovePostMutation, RemovePostMutationVariables>(RemovePostDocument);
+};
+export const UpdatePostDocument = gql`
+    mutation UpdatePost($text: String!, $title: String!, $updatePostId: Int!) {
+  updatePost(text: $text, title: $title, id: $updatePostId) {
+    id
+    title
+    text
+    textSnippet
+  }
+}
+    `;
+
+export function useUpdatePostMutation() {
+  return Urql.useMutation<UpdatePostMutation, UpdatePostMutationVariables>(UpdatePostDocument);
+};
 export const VoteDocument = gql`
     mutation Vote($value: Int!, $postId: Int!) {
   vote(value: $value, postId: $postId)
@@ -325,6 +398,26 @@ export const MeDocument = gql`
 export function useMeQuery(options: Omit<Urql.UseQueryArgs<MeQueryVariables>, 'query'> = {}) {
   return Urql.useQuery<MeQuery>({ query: MeDocument, ...options });
 };
+export const PostDocument = gql`
+    query Post($id: Int!) {
+  post(id: $id) {
+    id
+    createdAt
+    updatedAt
+    title
+    text
+    points
+    creator {
+      id
+      username
+    }
+  }
+}
+    `;
+
+export function usePostQuery(options: Omit<Urql.UseQueryArgs<PostQueryVariables>, 'query'> = {}) {
+  return Urql.useQuery<PostQuery>({ query: PostDocument, ...options });
+};
 export const PostsDocument = gql`
     query Posts($limit: Int!, $cursor: String) {
   posts(cursor: $cursor, limit: $limit) {
@@ -335,6 +428,7 @@ export const PostsDocument = gql`
       updatedAt
       title
       textSnippet
+      voteStatus
       points
       creator {
         id
@@ -347,4 +441,28 @@ export const PostsDocument = gql`
 
 export function usePostsQuery(options: Omit<Urql.UseQueryArgs<PostsQueryVariables>, 'query'> = {}) {
   return Urql.useQuery<PostsQuery>({ query: PostsDocument, ...options });
+};
+export const SuggestTasksDocument = gql`
+    query SuggestTasks($word: String) {
+  suggestTasks(word: $word) {
+    id
+    name
+  }
+}
+    `;
+
+export function useSuggestTasksQuery(options: Omit<Urql.UseQueryArgs<SuggestTasksQueryVariables>, 'query'> = {}) {
+  return Urql.useQuery<SuggestTasksQuery>({ query: SuggestTasksDocument, ...options });
+};
+export const TasksDocument = gql`
+    query Tasks {
+  tasks {
+    id
+    name
+  }
+}
+    `;
+
+export function useTasksQuery(options: Omit<Urql.UseQueryArgs<TasksQueryVariables>, 'query'> = {}) {
+  return Urql.useQuery<TasksQuery>({ query: TasksDocument, ...options });
 };

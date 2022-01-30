@@ -13,8 +13,12 @@ const breakpoints = createBreakpoints({
 const theme = extendTheme({
   colors: {
     black: "#16161D",
+    red: "#590202",
   },
-  fonts,
+  fonts: {
+    heading: "Anonymous Pro",
+    body: "Anonymous Pro",
+  },
   breakpoints,
   icons: {
     logo: {
